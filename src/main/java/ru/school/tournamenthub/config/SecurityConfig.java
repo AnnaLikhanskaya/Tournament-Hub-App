@@ -4,6 +4,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
@@ -11,22 +13,17 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                .csrf(csrf -> csrf.disable()) // Отключаем CSRF для API
                 .authorizeHttpRequests(authz -> authz
-                        // Разрешить доступ к Swagger без аутентификации
-                        .requestMatchers(
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**",
-                                "/swagger-resources/**",
-                                "/webjars/**",
-                                "/api-docs/**"
-                        ).permitAll()
-                        // Остальные запросы требуют аутентификации
-                        .anyRequest().authenticated()
-                )
-                .formLogin(form -> form.disable()) // Отключить форму логина
-                .httpBasic(httpBasic -> httpBasic.disable()); // Отключить basic auth
+                        .anyRequest().permitAll() // Разрешаем все запросы без аутентификации
+                );
 
         return http.build();
     }

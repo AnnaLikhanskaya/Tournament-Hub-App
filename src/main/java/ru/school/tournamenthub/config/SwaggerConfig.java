@@ -17,7 +17,7 @@ public class SwaggerConfig {
                         .version("1.0.0")
                         .description("Backend API для управления спортивными турнирами")
                         .contact(new Contact()
-                                .name("Tournament Hub+ Team")
+                                .name("Tournament Hub+")
                                 .email("support@tournamenthub.com")));
     }
 }
