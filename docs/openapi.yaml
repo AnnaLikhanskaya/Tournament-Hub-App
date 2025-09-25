@@ -1,0 +1,2028 @@
+openapi: 3.0.3
+info:
+  title: Tournament Hub+ API
+  version: 1.0.0
+  description: |
+    API для автоматизации управления спортивными турнирами баскетбольной школы.
+    Система позволяет управлять сезонами, турнирами, командами, спортсменами, матчами и генерировать отчеты.
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Сервер для разработки и тестирования
+  - url: https://api.tournamenthub.ru/api/v1
+    description: Продакшен сервер
+
+security:
+  - bearerAuth: []
+
+paths:
+  # Аутентификация
+  /auth/login:
+    post:
+      tags: [Аутентификация]
+      summary: Вход пользователя в систему
+      operationId: loginUser
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  example: "coach_ivanov"
+                password:
+                  type: string
+                  format: password
+                  example: "myPassword123"
+              required: [username, password]
+      responses:
+        '200':
+          description: Успешный вход
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  user:
+                    $ref: '#/components/schemas/User'
+
+  /auth/me:
+    get:
+      tags: [Аутентификация]
+      summary: Получить информацию о текущем пользователе
+      operationId: getCurrentUser
+      responses:
+        '200':
+          description: Успешное получение информации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  # Пользователи
+  /users:
+    get:
+      tags: [Пользователи]
+      summary: Получить список пользователей
+      operationId: getUsers
+      parameters:
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [ADMIN, COACH]
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Успешное получение списка пользователей
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  totalElements:
+                    type: integer
+                  totalPages:
+                    type: integer
+
+    post:
+      tags: [Пользователи]
+      summary: Создать нового пользователя
+      operationId: createUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+      responses:
+        '201':
+          description: Пользователь успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /users/{id}:
+    get:
+      tags: [Пользователи]
+      summary: Получить информацию о пользователе
+      operationId: getUserById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Успешное получение информации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+    put:
+      tags: [Пользователи]
+      summary: Обновить информацию о пользователе
+      operationId: updateUser
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdate'
+      responses:
+        '200':
+          description: Пользователь успешно обновлен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+    delete:
+      tags: [Пользователи]
+      summary: Удалить пользователя
+      operationId: deactivateUser
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Пользователь удалён
+
+  /users/{id}/password:
+    put:
+      tags: [Пользователи]
+      summary: Сменить пароль пользователя
+      operationId: changeUserPassword
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [newPassword]
+              properties:
+                newPassword:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Пароль успешно изменен
+
+  # Сезоны
+  /seasons:
+    get:
+      tags: [Сезоны]
+      summary: Получить список сезонов
+      operationId: getSeasons
+      parameters:
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+          description: Фильтр по активному сезону
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Успешное получение списка сезонов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Season'
+                  totalElements:
+                    type: integer
+                  totalPages:
+                    type: integer
+
+    post:
+      tags: [Сезоны]
+      summary: Создать новый сезон
+      operationId: createSeason
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SeasonCreate'
+      responses:
+        '201':
+          description: Сезон успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Season'
+
+  /seasons/{id}:
+    get:
+      tags: [Сезоны]
+      summary: Получить информацию о сезоне
+      operationId: getSeasonById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Успешное получение информации о сезоне
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Season'
+
+    put:
+      tags: [Сезоны]
+      summary: Обновить информацию о сезоне
+      operationId: updateSeason
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SeasonUpdate'
+      responses:
+        '200':
+          description: Сезон успешно обновлен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Season'
+
+    delete:
+      tags: [Сезоны]
+      summary: Удалить сезон
+      operationId: deleteSeason
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Сезон успешно удалён
+
+  /seasons/{id}/activate:
+    post:
+      tags: [Сезоны]
+      summary: Активировать сезон
+      operationId: activateSeason
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Сезон успешно активирован
+
+  # Турниры
+  /tournaments:
+    get:
+      tags: [Турниры]
+      summary: Получить список турниров
+      operationId: getTournaments
+      parameters:
+        - name: seasonId
+          in: query
+          schema:
+            type: integer
+          description: Фильтр по ID сезона
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PLANNED, ONGOING, COMPLETED, CANCELLED]
+        - name: tournamentType
+          in: query
+          schema:
+            type: string
+            enum: [REGULAR_SEASON, PLAYOFF, FRIENDLY, CHAMPIONSHIP]
+        - name: createdBy
+          in: query
+          schema:
+            type: integer
+          description: Фильтр по создателю
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Успешное получение списка турниров
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Tournament'
+                  totalElements:
+                    type: integer
+                  totalPages:
+                    type: integer
+
+    post:
+      tags: [Турниры]
+      summary: Создать новый турнир
+      operationId: createTournament
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TournamentCreate'
+      responses:
+        '201':
+          description: Турнир успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tournament'
+
+  /tournaments/{id}:
+    get:
+      tags: [Турниры]
+      summary: Получить информацию о турнире
+      operationId: getTournamentById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Успешное получение информации о турнире
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TournamentDetails'
+
+    put:
+      tags: [Турниры]
+      summary: Обновить информацию о турнире
+      operationId: updateTournament
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TournamentUpdate'
+      responses:
+        '200':
+          description: Турнир успешно обновлен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tournament'
+
+    delete:
+      tags: [Турниры]
+      summary: Удалить турнир
+      operationId: deleteTournament
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Турнир успешно удалён
+
+  /tournaments/{id}/register-team:
+    post:
+      tags: [Турниры]
+      summary: Зарегистрировать команду в турнире
+      operationId: registerTeamInTournament
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [teamId, groupName]
+              properties:
+                teamId:
+                  type: integer
+                  example: 1
+                groupName:
+                  type: string
+                  example: "Группа A"
+      responses:
+        '200':
+          description: Команда успешно зарегистрирована
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TournamentParticipation'
+
+  /tournaments/{id}/participants:
+    get:
+      tags: [Турниры]
+      summary: Получить список участников турнира
+      operationId: getTournamentParticipants
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: groupName
+          in: query
+          schema:
+            type: string
+          description: Фильтр по группе
+      responses:
+        '200':
+          description: Успешное получение списка участников
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TournamentParticipationDetails'
+
+  /tournaments/{id}/unregister-team/{teamId}:
+    delete:
+      tags: [Турниры]
+      summary: Отменить регистрацию команды в турнире
+      operationId: unregisterTeamFromTournament
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Команда успешно отменена
+
+  # Команды
+  /teams:
+    get:
+      tags: [Команды]
+      summary: Получить список команд
+      operationId: getTeams
+      parameters:
+        - name: coachId
+          in: query
+          schema:
+            type: integer
+          description: Фильтр по ID тренера
+        - name: city
+          in: query
+          schema:
+            type: string
+          description: Фильтр по городу
+        - name: gender
+          in: query
+          schema:
+            type: string
+            enum: [MALE, FEMALE]
+          description: Фильтр по полу команды
+        - name: yearGroup
+          in: query
+          schema:
+            type: string
+          description: Фильтр по году рождения
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Успешное получение списка команд
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Team'
+                  totalElements:
+                    type: integer
+                  totalPages:
+                    type: integer
+
+    post:
+      tags: [Команды]
+      summary: Создать новую команду
+      operationId: createTeam
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TeamCreate'
+      responses:
+        '201':
+          description: Команда успешно создана
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+
+  /teams/{id}:
+    get:
+      tags: [Команды]
+      summary: Получить информацию о команде
+      operationId: getTeamById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Успешное получение информации о команде
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamDetails'
+
+    put:
+      tags: [Команды]
+      summary: Обновить информацию о команде
+      operationId: updateTeam
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TeamUpdate'
+      responses:
+        '200':
+          description: Команда успешно обновлена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+
+    delete:
+      tags: [Команды]
+      summary: Удалить команду
+      operationId: deleteTeam
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Команда успешно удалена
+
+  /teams/{id}/tournaments:
+    get:
+      tags: [Команды]
+      summary: Получить турниры команды
+      operationId: getTeamTournaments
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: seasonId
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Успешное получение турниров команды
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tournament'
+
+  # Спортсмены
+  /athletes:
+    get:
+      tags: [Спортсмены]
+      summary: Получить список спортсменов
+      operationId: getAthletes
+      parameters:
+        - name: teamId
+          in: query
+          schema:
+            type: integer
+          description: Фильтр по ID команды
+        - name: gender
+          in: query
+          schema:
+            type: string
+            enum: [MALE, FEMALE]
+          description: Фильтр по полу
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: Успешное получение списка спортсменов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Athlete'
+                  totalElements:
+                    type: integer
+                  totalPages:
+                    type: integer
+
+    post:
+      tags: [Спортсмены]
+      summary: Добавить спортсмена в команду
+      operationId: createAthlete
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AthleteCreate'
+      responses:
+        '201':
+          description: Спортсмен успешно добавлен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Athlete'
+
+  /athletes/{id}:
+    get:
+      tags: [Спортсмены]
+      summary: Получить информацию о спортсмене
+      operationId: getAthleteById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Успешное получение информации о спортсмене
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Athlete'
+
+    put:
+      tags: [Спортсмены]
+      summary: Обновить информацию о спортсмене
+      operationId: updateAthlete
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AthleteUpdate'
+      responses:
+        '200':
+          description: Информация о спортсмене успешно обновлена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Athlete'
+
+    delete:
+      tags: [Спортсмены]
+      summary: Удалить спортсмена
+      operationId: deleteAthlete
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Спортсмен успешно удалён
+
+  /athletes/{id}/statistics:
+    get:
+      tags: [Спортсмены]
+      summary: Получить статистику спортсмена
+      operationId: getAthleteStatistics
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: seasonId
+          in: query
+          schema:
+            type: integer
+        - name: tournamentId
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Успешное получение статистики
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AthleteStatistics'
+
+  # Матчи
+  /matches:
+    get:
+      tags: [Матчи]
+      summary: Получить список матчей
+      operationId: getMatches
+      parameters:
+        - name: tournamentId
+          in: query
+          schema:
+            type: integer
+          description: Фильтр по ID турнира
+        - name: teamId
+          in: query
+          schema:
+            type: integer
+          description: Фильтр по ID команды
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [SCHEDULED, LIVE, COMPLETED, CANCELLED]
+          description: Фильтр по статусу матча
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Фильтр по дате от
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Фильтр по дате до
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: Успешное получение списка матчей
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MatchDetails'
+                  totalElements:
+                    type: integer
+                  totalPages:
+                    type: integer
+
+    post:
+      tags: [Матчи]
+      summary: Создать новый матч
+      operationId: createMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MatchCreate'
+      responses:
+        '201':
+          description: Матч успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Match'
+
+  /matches/{id}:
+    get:
+      tags: [Матчи]
+      summary: Получить информацию о матче
+      operationId: getMatchById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Успешное получение информации о матче
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchDetails'
+
+    put:
+      tags: [Матчи]
+      summary: Обновить информацию о матче
+      operationId: updateMatch
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MatchUpdate'
+      responses:
+        '200':
+          description: Матч успешно обновлен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Match'
+
+    delete:
+      tags: [Матчи]
+      summary: Удалить матч
+      operationId: deleteMatch
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Матч успешно удалён
+
+  /matches/{id}/result:
+    post:
+      tags: [Матчи]
+      summary: Внести результат матча
+      operationId: addMatchResult
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MatchStatisticsCreate'
+      responses:
+        '200':
+          description: Результат матча успешно добавлен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchStatistics'
+
+  /matches/{id}/player-stats:
+    post:
+      tags: [Матчи]
+      summary: Добавить статистику игрока в матче
+      operationId: addPlayerStats
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/PlayerStatsCreate'
+      responses:
+        '200':
+          description: Статистика игроков успешно добавлена
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlayerStats'
+
+    get:
+      tags: [Матчи]
+      summary: Получить статистику игроков матча
+      operationId: getMatchPlayerStats
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Успешное получение статистики
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlayerStats'
+
+  /matches/{id}/start:
+    post:
+      tags: [Матчи]
+      summary: Начать матч
+      operationId: startMatch
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Матч успешно начат
+
+  /matches/{id}/complete:
+    post:
+      tags: [Матчи]
+      summary: Завершить матч
+      operationId: completeMatch
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Матч успешно завершен
+
+  # Статистика
+  /statistics/teams/{teamId}:
+    get:
+      tags: [Статистика]
+      summary: Получить статистику команды
+      operationId: getTeamStatistics
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: seasonId
+          in: query
+          schema:
+            type: integer
+        - name: tournamentId
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Успешное получение статистики
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamStatistics'
+
+  /statistics/tournaments/{tournamentId}:
+    get:
+      tags: [Статистика]
+      summary: Получить статистику турнира
+      operationId: getTournamentStatistics
+      parameters:
+        - name: tournamentId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Успешное получение статистики
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TournamentStatistics'
+
+  # Отчеты
+  /reports/tournament/{tournamentId}:
+    get:
+      tags: [Отчеты]
+      summary: Сгенерировать отчет по турниру
+      operationId: generateTournamentReport
+      parameters:
+        - name: tournamentId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: reportType
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [STANDINGS, STATISTICS, PARTICIPATION]
+          description: Тип отчета
+      responses:
+        '200':
+          description: Отчет успешно сгенерирован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TournamentReport'
+
+  /reports/team/{teamId}:
+    get:
+      tags: [Отчеты]
+      summary: Сгенерировать отчет по команде
+      operationId: generateTeamReport
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: seasonId
+          in: query
+          schema:
+            type: integer
+          description: ID сезона (если не указан - текущий сезон)
+        - name: reportType
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [PERFORMANCE, STATISTICS, PLAYERS]
+      responses:
+        '200':
+          description: Отчет успешно сгенерирован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamReport'
+
+  /reports/player/{playerId}:
+    get:
+      tags: [Отчеты]
+      summary: Сгенерировать отчет по игроку
+      operationId: generatePlayerReport
+      parameters:
+        - name: playerId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: seasonId
+          in: query
+          schema:
+            type: integer
+        - name: tournamentId
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Отчет успешно сгенерирован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlayerReport'
+
+  /reports/history:
+    get:
+      tags: [Отчеты]
+      summary: Получить историю сгенерированных отчетов
+      operationId: getReportHistory
+      parameters:
+        - name: generatedBy
+          in: query
+          schema:
+            type: integer
+        - name: reportType
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+      responses:
+        '200':
+          description: Успешное получение истории
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ReportHistoryItem'
+                  totalElements:
+                    type: integer
+                  totalPages:
+                    type: integer
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        username:
+          type: string
+          example: "coach_ivanov"
+        email:
+          type: string
+          example: "ivanov@school.com"
+        role:
+          type: string
+          enum: [ADMIN, COACH]
+          example: "COACH"
+        fullName:
+          type: string
+          example: "Иван Иванов"
+        isActive:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    UserCreate:
+      type: object
+      required: [username, email, password, role, fullName]
+      properties:
+        username:
+          type: string
+          example: "coach_ivanov"
+        email:
+          type: string
+          example: "ivanov@school.com"
+        password:
+          type: string
+          format: password
+          example: "securePassword123"
+        role:
+          type: string
+          enum: [ADMIN, COACH]
+          example: "COACH"
+        fullName:
+          type: string
+          example: "Иван Иванов"
+        isActive:
+          type: boolean
+          example: true
+
+    UserUpdate:
+      type: object
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [ADMIN, COACH]
+        fullName:
+          type: string
+        isActive:
+          type: boolean
+
+    Season:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Сезон 2024/2025"
+        startYear:
+          type: integer
+          example: 2024
+        endYear:
+          type: integer
+          example: 2025
+        isActive:
+          type: boolean
+          example: true
+        description:
+          type: string
+          example: "Основной сезон турниров"
+        createdAt:
+          type: string
+          format: date-time
+
+    SeasonCreate:
+      type: object
+      required: [name, startYear, endYear]
+      properties:
+        name:
+          type: string
+          example: "Сезон 2024/2025"
+        startYear:
+          type: integer
+          example: 2024
+        endYear:
+          type: integer
+          example: 2025
+        description:
+          type: string
+        isActive:
+          type: boolean
+          example: false
+
+    SeasonUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        isActive:
+          type: boolean
+
+    Tournament:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Весенний кубок 2024"
+        description:
+          type: string
+          example: "Ежегодный весенний турнир"
+        startDate:
+          type: string
+          format: date
+          example: "2024-03-15"
+        endDate:
+          type: string
+          format: date
+          example: "2024-03-17"
+        location:
+          type: string
+          example: "Спорткомплекс 'Олимп'"
+        status:
+          type: string
+          enum: [PLANNED, ONGOING, COMPLETED, CANCELLED]
+          example: "PLANNED"
+        tournamentGender:
+          type: string
+          enum: [MALE, FEMALE]
+          example: "MALE"
+        ageCategory:
+          type: string
+          example: "U14"
+        tournamentType:
+          type: string
+          enum: [REGULAR_SEASON, PLAYOFF, FRIENDLY, CHAMPIONSHIP]
+          example: "CHAMPIONSHIP"
+        maxTeams:
+          type: integer
+          example: 16
+        format:
+          type: string
+          example: "Групповой этап + плей-офф"
+        seasonId:
+          type: integer
+          example: 1
+        createdAt:
+          type: string
+          format: date-time
+
+    TournamentDetails:
+      allOf:
+        - $ref: '#/components/schemas/Tournament'
+        - type: object
+          properties:
+            createdBy:
+              $ref: '#/components/schemas/User'
+            season:
+              $ref: '#/components/schemas/Season'
+            participantCount:
+              type: integer
+              example: 8
+
+    TournamentCreate:
+      type: object
+      required: [name, seasonId, createdBy, tournamentType]
+      properties:
+        name:
+          type: string
+          example: "Весенний кубок 2024"
+        description:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        location:
+          type: string
+        tournamentGender:
+          type: string
+          enum: [MALE, FEMALE]
+        ageCategory:
+          type: string
+        tournamentType:
+          type: string
+          enum: [REGULAR_SEASON, PLAYOFF, FRIENDLY, CHAMPIONSHIP]
+        maxTeams:
+          type: integer
+        format:
+          type: string
+        seasonId:
+          type: integer
+          example: 1
+
+    TournamentUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        location:
+          type: string
+        status:
+          type: string
+          enum: [PLANNED, ONGOING, COMPLETED, CANCELLED]
+        tournamentGender:
+          type: string
+          enum: [MALE, FEMALE]
+        ageCategory:
+          type: string
+        tournamentType:
+          type: string
+          enum: [REGULAR_SEASON, PLAYOFF, FRIENDLY, CHAMPIONSHIP]
+        maxTeams:
+          type: integer
+        format:
+          type: string
+
+    TournamentParticipation:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        tournamentId:
+          type: integer
+          example: 1
+        teamId:
+          type: integer
+          example: 1
+        groupName:
+          type: string
+          example: "Группа A"
+        finalPosition:
+          type: integer
+          example: 3
+
+    TournamentParticipationDetails:
+      allOf:
+        - $ref: '#/components/schemas/TournamentParticipation'
+        - type: object
+          properties:
+            team:
+              $ref: '#/components/schemas/Team'
+            tournament:
+              $ref: '#/components/schemas/Tournament'
+
+    Team:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Спартак"
+        city:
+          type: string
+          example: "Москва"
+        coachId:
+          type: integer
+          example: 1
+        gender:
+          type: string
+          enum: [MALE, FEMALE]
+          example: "MALE"
+        yearGroup:
+          type: string
+          example: "2009"
+        fullDisplayName:
+          type: string
+          example: "Юноши, Спартак 2009, Москва"
+        createdAt:
+          type: string
+          format: date-time
+
+    TeamDetails:
+      allOf:
+        - $ref: '#/components/schemas/Team'
+        - type: object
+          properties:
+            coach:
+              $ref: '#/components/schemas/User'
+            athleteCount:
+              type: integer
+              example: 12
+
+    TeamCreate:
+      type: object
+      required: [name, city, coachId, gender]
+      properties:
+        name:
+          type: string
+          example: "Спартак"
+        city:
+          type: string
+          example: "Москва"
+        coachId:
+          type: integer
+          example: 1
+        gender:
+          type: string
+          enum: [MALE, FEMALE]
+          example: "MALE"
+        yearGroup:
+          type: string
+          example: "2009"
+
+    TeamUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        city:
+          type: string
+        coachId:
+          type: integer
+        gender:
+          type: string
+          enum: [MALE, FEMALE]
+        yearGroup:
+          type: string
+
+    Athlete:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        firstName:
+          type: string
+          example: "Алексей"
+        lastName:
+          type: string
+          example: "Петров"
+        birthDate:
+          type: string
+          format: date
+          example: "2009-05-15"
+        teamId:
+          type: integer
+          example: 1
+        gender:
+          type: string
+          enum: [MALE, FEMALE]
+          example: "MALE"
+        jerseyNumber:
+          type: integer
+          example: 15
+        createdAt:
+          type: string
+          format: date-time
+
+    AthleteCreate:
+      type: object
+      required: [firstName, lastName, teamId, gender]
+      properties:
+        firstName:
+          type: string
+          example: "Алексей"
+        lastName:
+          type: string
+          example: "Петров"
+        birthDate:
+          type: string
+          format: date
+        teamId:
+          type: integer
+          example: 1
+        gender:
+          type: string
+          enum: [MALE, FEMALE]
+          example: "MALE"
+        jerseyNumber:
+          type: integer
+          example: 15
+
+    AthleteUpdate:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        birthDate:
+          type: string
+          format: date
+        teamId:
+          type: integer
+        gender:
+          type: string
+          enum: [MALE, FEMALE]
+        jerseyNumber:
+          type: integer
+
+    AthleteStatistics:
+      type: object
+      properties:
+        athleteId:
+          type: integer
+          example: 1
+        matchesPlayed:
+          type: integer
+          example: 10
+        totalPoints:
+          type: integer
+          example: 85
+        averagePoints:
+          type: number
+          format: float
+          example: 8.5
+        totalFouls:
+          type: integer
+          example: 12
+        averageFouls:
+          type: number
+          format: float
+          example: 1.2
+        totalMinutes:
+          type: integer
+          example: 200
+        averageMinutes:
+          type: number
+          format: float
+          example: 20.0
+
+    Match:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        tournamentId:
+          type: integer
+          example: 1
+        homeTeamId:
+          type: integer
+          example: 1
+        awayTeamId:
+          type: integer
+          example: 2
+        matchDate:
+          type: string
+          format: date-time
+          example: "2024-03-15T14:00:00Z"
+        status:
+          type: string
+          enum: [SCHEDULED, LIVE, COMPLETED, CANCELLED]
+          example: "SCHEDULED"
+        round:
+          type: string
+          example: "Групповой этап"
+        createdAt:
+          type: string
+          format: date-time
+
+    MatchDetails:
+      allOf:
+        - $ref: '#/components/schemas/Match'
+        - type: object
+          properties:
+            tournament:
+              $ref: '#/components/schemas/Tournament'
+            homeTeam:
+              $ref: '#/components/schemas/Team'
+            awayTeam:
+              $ref: '#/components/schemas/Team'
+            statistics:
+              $ref: '#/components/schemas/MatchStatistics'
+
+    MatchCreate:
+      type: object
+      required: [tournamentId, homeTeamId, awayTeamId]
+      properties:
+        tournamentId:
+          type: integer
+          example: 1
+        homeTeamId:
+          type: integer
+          example: 1
+        awayTeamId:
+          type: integer
+          example: 2
+        matchDate:
+          type: string
+          format: date-time
+        round:
+          type: string
+        status:
+          type: string
+          enum: [SCHEDULED, LIVE, COMPLETED, CANCELLED]
+
+    MatchUpdate:
+      type: object
+      properties:
+        matchDate:
+          type: string
+          format: date-time
+        round:
+          type: string
+        status:
+          type: string
+          enum: [SCHEDULED, LIVE, COMPLETED, CANCELLED]
+
+    MatchStatistics:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        matchId:
+          type: integer
+          example: 1
+        homeTeamScore:
+          type: integer
+          example: 75
+        awayTeamScore:
+          type: integer
+          example: 68
+        homeTeamFouls:
+          type: integer
+          example: 15
+        awayTeamFouls:
+          type: integer
+          example: 18
+        recordedBy:
+          type: integer
+          example: 1
+        recordedAt:
+          type: string
+          format: date-time
+
+    MatchStatisticsCreate:
+      type: object
+      required: [homeTeamScore, awayTeamScore, recordedBy]
+      properties:
+        homeTeamScore:
+          type: integer
+          example: 75
+        awayTeamScore:
+          type: integer
+          example: 68
+        homeTeamFouls:
+          type: integer
+          example: 15
+        awayTeamFouls:
+          type: integer
+          example: 18
+        recordedBy:
+          type: integer
+          example: 1
+
+    PlayerStats:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        matchId:
+          type: integer
+          example: 1
+        athleteId:
+          type: integer
+          example: 1
+        pointsScored:
+          type: integer
+          example: 12
+        foulsCommitted:
+          type: integer
+          example: 2
+        minutesPlayed:
+          type: integer
+          example: 25
+
+    PlayerStatsCreate:
+      type: object
+      required: [athleteId]
+      properties:
+        athleteId:
+          type: integer
+          example: 1
+        pointsScored:
+          type: integer
+          example: 12
+        foulsCommitted:
+          type: integer
+          example: 2
+        minutesPlayed:
+          type: integer
+          example: 25
+
+    TeamStatistics:
+      type: object
+      properties:
+        teamId:
+          type: integer
+          example: 1
+        matchesPlayed:
+          type: integer
+          example: 10
+        wins:
+          type: integer
+          example: 7
+        losses:
+          type: integer
+          example: 3
+        pointsScored:
+          type: integer
+          example: 750
+        pointsConceded:
+          type: integer
+          example: 680
+        averagePointsPerGame:
+          type: number
+          format: float
+          example: 75.0
+        foulsTotal:
+          type: integer
+          example: 150
+
+    TournamentStatistics:
+      type: object
+      properties:
+        tournamentId:
+          type: integer
+          example: 1
+        totalMatches:
+          type: integer
+          example: 28
+        completedMatches:
+          type: integer
+          example: 25
+        participatingTeams:
+          type: integer
+          example: 8
+        totalPointsScored:
+          type: integer
+          example: 2100
+        averagePointsPerMatch:
+          type: number
+          format: float
+          example: 84.0
+
+    TournamentReport:
+      type: object
+      properties:
+        tournamentId:
+          type: integer
+          example: 1
+        reportType:
+          type: string
+          enum: [STANDINGS, STATISTICS, PARTICIPATION]
+        generatedAt:
+          type: string
+          format: date-time
+        data:
+          type: object
+          description: Данные отчета в зависимости от типа
+
+    TeamReport:
+      type: object
+      properties:
+        teamId:
+          type: integer
+          example: 1
+        reportType:
+          type: string
+          enum: [PERFORMANCE, STATISTICS, PLAYERS]
+        generatedAt:
+          type: string
+          format: date-time
+        data:
+          type: object
+
+    PlayerReport:
+      type: object
+      properties:
+        playerId:
+          type: integer
+          example: 1
+        generatedAt:
+          type: string
+          format: date-time
+        data:
+          type: object
+
+    ReportHistoryItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        reportType:
+          type: string
+          example: "TOURNAMENT_STANDINGS"
+        generatedAt:
+          type: string
+          format: date-time
+        generatedBy:
+          $ref: '#/components/schemas/User'
+        parameters:
+          type: object
+          description: Параметры, с которыми был сгенерирован отчет
