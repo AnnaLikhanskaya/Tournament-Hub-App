@@ -1,14 +1,18 @@
 package ru.school.tournamenthub.model.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
 
 /**
  * Хранит индивидуальные показатели каждого игрока в конкретном матче.
  */
 @Entity
 @Table(name = "match_player_statistics")
-@Data
+@Getter
+@Setter
+@ToString
+@EqualsAndHashCode
+@NoArgsConstructor
 public class MatchPlayerStatistics {
 
     @Id

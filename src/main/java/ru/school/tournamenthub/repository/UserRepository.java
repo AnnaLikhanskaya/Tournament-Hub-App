@@ -10,11 +10,20 @@ import ru.school.tournamenthub.model.enums.UserRole;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface UserRepository extends JpaRepository<User, Long> {
+public interface UserRepository extends JpaRepository<User, UUID> { // Используем UUID вместо Long
 
     Optional<User> findByUsername(String username);
+
+    @Query("SELECT CASE WHEN COUNT(t) > 0 THEN true ELSE false END " +
+            "FROM Team t WHERE t.id = :teamId AND t.owner.id = :userId")
+    boolean existsUserAsTeamOwner(@Param("userId") UUID userId, @Param("teamId") UUID teamId);
+
+    @Query("SELECT CASE WHEN COUNT(t) > 0 THEN true ELSE false END " +
+            "FROM Tournament t WHERE t.id = :tournamentId AND t.owner.id = :userId")
+    boolean existsUserAsTournamentOwner(@Param("userId") UUID userId, @Param("tournamentId") UUID tournamentId);
 
     Optional<User> findByEmail(String email);
 
@@ -28,11 +37,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     List<User> findByFullNameContainingIgnoreCase(String name);
 
-    // Кастомный запрос для поиска по имени пользователя или email
     @Query("SELECT u FROM User u WHERE u.username = :usernameOrEmail OR u.email = :usernameOrEmail")
     Optional<User> findByUsernameOrEmail(@Param("usernameOrEmail") String usernameOrEmail);
 
-    // Поиск пользователей, созданных после определенной даты
     List<User> findByCreatedAtAfter(LocalDateTime date);
 }
-

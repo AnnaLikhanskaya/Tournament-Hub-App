@@ -2,9 +2,6 @@ package ru.school.tournamenthub.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -13,12 +10,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import ru.school.tournamenthub.dto.request.UserRequest;
 import ru.school.tournamenthub.dto.response.UserResponse;
 import ru.school.tournamenthub.service.UserService;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/users")
@@ -29,64 +28,33 @@ public class UserController {
 
     private final UserService userService;
 
-    /**
-     * Создание нового пользователя
-     * POST /api/users
-     */
     @PostMapping
-    @Operation(summary = "Создать нового пользователя", description = "Создает нового пользователя (тренера или администратора)")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Создать нового пользователя", description = "Создает нового пользователя (тренера или администратора). Только для администраторов.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Пользователь успешно создан"),
             @ApiResponse(responseCode = "400", description = "Некорректные данные пользователя"),
+            @ApiResponse(responseCode = "403", description = "Недостаточно прав"),
             @ApiResponse(responseCode = "409", description = "Пользователь с таким username или email уже существует")
     })
-    public ResponseEntity<UserResponse> createUser(
-            @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    description = "Данные пользователя",
-                    required = true,
-                    content = @Content(schema = @Schema(implementation = UserRequest.class), examples = {
-                            @ExampleObject(name = "Тренер", value = """
-                                    {
-                                      "username": "coach_ivanov",
-                                      "email": "ivanov@sportschool.ru",
-                                      "password": "password123",
-                                      "role": "COACH",
-                                      "fullName": "Иванов Иван Иванович"
-                                    }"""),
-                            @ExampleObject(name = "Администратор", value = """
-                                    {
-                                      "username": "admin",
-                                      "email": "admin@sportschool.ru",
-                                      "password": "admin123",
-                                      "role": "ADMIN", 
-                                      "fullName": "Администратор Системы"
-                                    }""")
-                    })
-            )
-            @Valid @RequestBody UserRequest userRequest) {
-
-        log.info("Получен запрос на создание пользователя: {}", userRequest.getUsername());
-
+    public ResponseEntity<UserResponse> createUser(@Valid @RequestBody UserRequest userRequest) {
+        log.info("Получен запрос на создание пользователя: {}", userRequest.username());
         UserResponse createdUser = userService.createUser(userRequest);
-
-        log.info("Пользователь создан успешно: {}", createdUser.getId());
+        log.info("Пользователь создан успешно: {}", createdUser.id());
         return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
     }
 
-
-    /**
-     * Получение пользователя по ID
-     * GET /api/users/{id}
-     */
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('COACH') and @securityService.isCurrentUser(#id))")
+
     @Operation(summary = "Получить пользователя по ID", description = "Возвращает данные пользователя по его идентификатору")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Пользователь найден"),
             @ApiResponse(responseCode = "404", description = "Пользователь не найден")
     })
     public ResponseEntity<UserResponse> getUserById(
-            @Parameter(description = "ID пользователя", example = "1")
-            @PathVariable Long id) {
+            @Parameter(description = "ID пользователя", example = "123e4567-e89b-12d3-a456-426614174000")
+            @PathVariable UUID id) {
         log.info("Получен запрос на получение пользователя с ID: {}", id);
 
         UserResponse user = userService.getUserById(id);
@@ -95,27 +63,29 @@ public class UserController {
         return ResponseEntity.ok(user);
     }
 
-    /**
-     * Получение всех пользователей
-     * GET /api/users
-     */
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Получить всех пользователей", description = "Возвращает список всех пользователей системы")
-    @ApiResponse(responseCode = "200", description = "Список пользователей получен успешно")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Список пользователей получен успешно"),
+            @ApiResponse(responseCode = "204", description = "Пользователи не найдены") // ← ДОБАВЛЕНО
+    })
     public ResponseEntity<List<UserResponse>> getAllUsers() {
         log.info("Получен запрос на получение всех пользователей");
 
         List<UserResponse> users = userService.getAllUsers();
 
+        if (users.isEmpty()) {
+            log.info("Пользователи не найдены");
+            return ResponseEntity.noContent().build();
+        }
+
         log.info("Найдено {} пользователей", users.size());
         return ResponseEntity.ok(users);
     }
 
-    /**
-     * Обновление пользователя
-     * PUT /api/users/{id}
-     */
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Обновить пользователя", description = "Обновляет данные существующего пользователя")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Пользователь успешно обновлен"),
@@ -125,7 +95,7 @@ public class UserController {
     })
     public ResponseEntity<UserResponse> updateUser(
             @Parameter(description = "ID пользователя", example = "1")
-            @PathVariable Long id,
+            @PathVariable UUID id,
             @Valid @RequestBody UserRequest userRequest) {
         log.info("Получен запрос на обновление пользователя с ID: {}", id);
 
@@ -135,11 +105,8 @@ public class UserController {
         return ResponseEntity.ok(updatedUser);
     }
 
-    /**
-     * Удаление пользователя (деактивация)
-     * DELETE /api/users/{id}
-     */
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Удалить пользователя", description = "Деактивирует пользователя (мягкое удаление)")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Пользователь успешно деактивирован"),
@@ -147,7 +114,7 @@ public class UserController {
     })
     public ResponseEntity<Void> deleteUser(
             @Parameter(description = "ID пользователя", example = "1")
-            @PathVariable Long id) {
+            @PathVariable UUID id) {
         log.info("Получен запрос на деактивацию пользователя с ID: {}", id);
 
         userService.deleteUser(id);
@@ -156,24 +123,22 @@ public class UserController {
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * Активация пользователя
-     * PATCH /api/users/{id}/activate
-     */
     @PatchMapping("/{id}/activate")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Активировать пользователя", description = "Активирует ранее деактивированного пользователя")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Пользователь активирован"),
-            @ApiResponse(responseCode = "404", description = "Пользователь не найден")
+            @ApiResponse(responseCode = "404", description = "Пользователь не найден"),
+            @ApiResponse(responseCode = "409", description = "Пользователь уже активен")
     })
-    public ResponseEntity<Void> activateUser(
-            @Parameter(description = "ID пользователя", example = "1")
-            @PathVariable Long id) {
+    public ResponseEntity<UserResponse> activateUser(
+                                                      @Parameter(description = "ID пользователя", example = "1")
+                                                      @PathVariable UUID id) {
         log.info("Получен запрос на активацию пользователя с ID: {}", id);
 
-        userService.activateUser(id);
+        UserResponse activatedUser = userService.activateUser(id);
 
         log.info("Пользователь с ID {} активирован", id);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(activatedUser);
     }
 }

@@ -19,7 +19,7 @@ CREATE TABLE "seasons"(
     "end_year" INTEGER NOT NULL,
     "is_active" BOOLEAN NOT NULL DEFAULT FALSE,
     "description" TEXT,
-    "created_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Создание таблицы команд
@@ -28,6 +28,7 @@ CREATE TABLE "teams"(
     "name" VARCHAR(100) NOT NULL,
     "city" VARCHAR(50) NOT NULL,
     "coach_id" BIGINT NOT NULL REFERENCES "users"("id"),
+    "owner_id" BIGINT NOT NULL REFERENCES "users"("id"),
     "gender" VARCHAR(10) NOT NULL,
     "year_group" VARCHAR(10),
     "full_display_name" VARCHAR(200),
@@ -40,17 +41,18 @@ CREATE TABLE "tournaments"(
     "id" BIGSERIAL PRIMARY KEY,
     "name" VARCHAR(100) NOT NULL,
     "description" TEXT,
-    "start_date" DATE,
-    "end_date" DATE,
-    "location" VARCHAR(100),
+    "start_date" DATE NOT NULL,
+    "end_date" DATE NOT NULL,
+    "location" VARCHAR(100) NOT NULL,
     "status" VARCHAR(20) NOT NULL DEFAULT 'PLANNED',
-    "tournament_gender" VARCHAR(10),
-    "age_category" VARCHAR(20),
-    "created_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "tournament_gender" VARCHAR(10) NOT NULL,
+    "age_category" VARCHAR(20) NOT NULL,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "created_by" BIGINT NOT NULL REFERENCES "users"("id"),
+    "owner_id" BIGINT NOT NULL REFERENCES "users"("id"),
     "tournament_type" VARCHAR(20) NOT NULL DEFAULT 'REGULAR_SEASON',
-    "max_teams" INTEGER,
-    "format" VARCHAR(50),
+    "max_teams" INTEGER NOT NULL,
+    "format" VARCHAR(50) NOT NULL,
     "season_id" BIGINT NOT NULL REFERENCES "seasons"("id")
 );
 
@@ -59,7 +61,7 @@ CREATE TABLE "athletes"(
     "id" BIGSERIAL PRIMARY KEY,
     "first_name" VARCHAR(50) NOT NULL,
     "last_name" VARCHAR(50) NOT NULL,
-    "birth_date" DATE,
+    "birth_date" DATE NOT NULL,
     "team_id" BIGINT NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,
     "gender" VARCHAR(10) NOT NULL,
     "jersey_number" INTEGER,
@@ -72,9 +74,9 @@ CREATE TABLE "matches"(
     "tournament_id" BIGINT NOT NULL REFERENCES "tournaments"("id"),
     "home_team_id" BIGINT NOT NULL REFERENCES "teams"("id"),
     "away_team_id" BIGINT NOT NULL REFERENCES "teams"("id"),
-    "match_date" TIMESTAMPTZ,
+    "match_date" TIMESTAMPTZ NOT NULL,
     "status" VARCHAR(20) NOT NULL DEFAULT 'SCHEDULED',
-    "round" VARCHAR(50),
+    "round" VARCHAR(50) NOT NULL,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -87,7 +89,7 @@ CREATE TABLE "match_statistics"(
     "home_team_fouls" INTEGER NOT NULL DEFAULT 0,
     "away_team_fouls" INTEGER NOT NULL DEFAULT 0,
     "recorded_by" BIGINT NOT NULL REFERENCES "users"("id"),
-    "recorded_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "recorded_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Создание таблицы участия команд в турнирах
@@ -123,17 +125,20 @@ CREATE TABLE "team_reports"(
     "gender_filter" VARCHAR(10),
     "year_group_filter" VARCHAR(10),
     "season_id" BIGINT NOT NULL REFERENCES "seasons"("id"),
-    "tournament_id" BIGINT REFERENCES "tournaments"("id"),
-    "team_id" BIGINT REFERENCES "teams"("id"),
-    "athlete_id" BIGINT REFERENCES "athletes"("id"),
+    "tournament_id" BIGINT REFERENCES "tournaments"("id") ON DELETE SET NULL,
+    "team_id" BIGINT REFERENCES "teams"("id") ON DELETE SET NULL,
+    "athlete_id" BIGINT REFERENCES "athletes"("id") ON DELETE SET NULL,
     "report_data" JSONB NOT NULL,
-    "generated_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "generated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "generated_by" BIGINT NOT NULL REFERENCES "users"("id")
 );
 
 -- Создание индексов для оптимизации запросов
 CREATE INDEX "idx_teams_coach_id" ON "teams"("coach_id");
+CREATE INDEX "idx_teams_owner_id" ON "teams"("owner_id");
 CREATE INDEX "idx_teams_city_gender" ON "teams"("city", "gender");
+CREATE INDEX "idx_tournaments_owner_id" ON "tournaments"("owner_id");
+CREATE INDEX "idx_tournaments_created_by" ON "tournaments"("created_by");
 CREATE INDEX "idx_athletes_team_id" ON "athletes"("team_id");
 CREATE INDEX "idx_athletes_birth_date" ON "athletes"("birth_date");
 CREATE INDEX "idx_matches_tournament_id" ON "matches"("tournament_id");
@@ -145,6 +150,7 @@ CREATE INDEX "idx_tournament_participations_team" ON "tournament_participations"
 CREATE INDEX "idx_match_player_stats_match" ON "match_player_statistics"("match_id");
 CREATE INDEX "idx_match_player_stats_athlete" ON "match_player_statistics"("athlete_id");
 CREATE INDEX "idx_team_reports_filters" ON "team_reports"("season_id", "tournament_id", "team_id");
+CREATE INDEX "idx_team_reports_generated_by" ON "team_reports"("generated_by");
 
 -- Триггер для автоматического обновления updated_at в users
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -175,3 +181,26 @@ $$ language 'plpgsql';
 
 CREATE TRIGGER generate_team_display_name_trigger BEFORE INSERT OR UPDATE ON "teams"
     FOR EACH ROW EXECUTE FUNCTION generate_team_display_name();
+
+-- Комментарии к таблицам и полям для документации
+COMMENT ON TABLE users IS 'Таблица пользователей системы';
+COMMENT ON COLUMN users.role IS 'Роль пользователя: ADMIN, COACH, USER';
+
+COMMENT ON TABLE seasons IS 'Таблица спортивных сезонов';
+COMMENT ON COLUMN seasons.is_active IS 'Флаг активного сезона';
+
+COMMENT ON TABLE teams IS 'Таблица спортивных команд';
+COMMENT ON COLUMN teams.gender IS 'Пол состава: MALE, FEMALE';
+COMMENT ON COLUMN teams.year_group IS 'Возрастная группа: 2005, 2006 и т.д.';
+
+COMMENT ON TABLE tournaments IS 'Таблица турниров и соревнований';
+COMMENT ON COLUMN tournaments.status IS 'Статус турнира: PLANNED, ACTIVE, COMPLETED, CANCELLED';
+COMMENT ON COLUMN tournaments.tournament_type IS 'Тип турнира: REGULAR_SEASON, PLAYOFF, FRIENDLY';
+
+COMMENT ON TABLE matches IS 'Таблица матчей';
+COMMENT ON COLUMN matches.status IS 'Статус матча: SCHEDULED, LIVE, COMPLETED, CANCELLED';
+
+COMMENT ON TABLE match_statistics IS 'Статистика матчей по командам';
+COMMENT ON TABLE match_player_statistics IS 'Индивидуальная статистика игроков по матчам';
+COMMENT ON TABLE tournament_participations IS 'Участие команд в турнирах';
+COMMENT ON TABLE team_reports IS 'Отчеты и аналитика по командам и игрокам';

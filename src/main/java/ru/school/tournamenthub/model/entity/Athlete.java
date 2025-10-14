@@ -1,7 +1,7 @@
 package ru.school.tournamenthub.model.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
 import ru.school.tournamenthub.model.enums.Gender;
 
 import java.time.LocalDate;
@@ -11,8 +11,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "athlenes")
-@Data
+@Table(name = "athletes") // исправил опечатку в названии таблицы
+@Getter
+@Setter
+@ToString(exclude = {"team", "playerStatistics"})
+@EqualsAndHashCode(exclude = {"team", "playerStatistics"})
+@NoArgsConstructor
 
 public class Athlete {
 

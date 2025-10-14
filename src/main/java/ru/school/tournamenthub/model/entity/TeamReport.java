@@ -1,7 +1,7 @@
 package ru.school.tournamenthub.model.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
 import ru.school.tournamenthub.model.enums.Gender;
 import ru.school.tournamenthub.model.enums.ReportType;
 
@@ -13,7 +13,11 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "team_reports")
-@Data
+@Getter
+@Setter
+@ToString(exclude = {"season", "tournament", "team", "athlete", "generatedBy"})
+@EqualsAndHashCode(exclude = {"season", "tournament", "team", "athlete", "generatedBy"})
+@NoArgsConstructor
 public class TeamReport {
 
     @Id

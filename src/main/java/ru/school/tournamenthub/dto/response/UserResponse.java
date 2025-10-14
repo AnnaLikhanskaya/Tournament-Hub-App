@@ -1,46 +1,37 @@
 package ru.school.tournamenthub.dto.response;
 
-
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Data;
 import ru.school.tournamenthub.model.enums.UserRole;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
-@Data
 @Schema(description = "Ответ с данными пользователя")
-public class UserResponse {
+public record UserResponse(
+        @Schema(description = "ID пользователя", example = "123e4567-e89b-12d3-a456-426614174000")
+        UUID id,
 
-    @Schema(description = "ID пользователя", example = "1")
-    private Long id;
+        @Schema(description = "Имя пользователя", example = "ivanov_coach")
+        String username,
 
-    @Schema(description = "Имя пользователя", example = "ivanov_coach")
-    private String username;
+        @Schema(description = "Email пользователя", example = "ivanov@school.ru")
+        String email,
 
-    @Schema(description = "Email пользователя", example = "ivanov@school.ru")
-    private String email;
+        @Schema(description = "Роль пользователя", example = "COACH")
+        UserRole role,
 
-    @Schema(description = "Роль пользователя", example = "COACH")
-    private UserRole role;
+        @Schema(description = "Полное имя пользователя", example = "Иванов Иван Иванович")
+        String fullName,
 
-    @Schema(description = "Полное имя пользователя", example = "Иванов Иван Иванович")
-    private String fullName;
+        @Schema(description = "Дата создания учетной записи")
+        LocalDateTime createdAt,
 
-    // Дата и время создания записи в базе данных
-    // Автоматически устанавливается при создании
-    @Schema(description = "Дата создания учетной записи")
-    private LocalDateTime createdAt;
+        @Schema(description = "Дата последнего обновления")
+        LocalDateTime updatedAt,
 
-    // Дата и время последнего обновления записи
-    // Автоматически обновляется при изменении данных
-    @Schema(description = "Дата последнего обновления")
-    private LocalDateTime updatedAt;
+        @Schema(description = "Статус активности учетной записи", example = "true")
+        Boolean isActive,
 
-    // false - пользователь заблокирован и не может войти в систему
-    @Schema(description = "Статус активности учетной записи", example = "true")
-    private Boolean isActive;
-
-    /*
-    Пароль отсутсвует из за безопасности, тк не должен отправляться клиенту
-     */
-}
+        @Schema(description = "Версия для оптимистичной блокировки")
+        Long version
+) {}

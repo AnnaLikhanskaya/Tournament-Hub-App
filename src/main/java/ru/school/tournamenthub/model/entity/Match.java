@@ -1,7 +1,7 @@
 package ru.school.tournamenthub.model.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
 import ru.school.tournamenthub.model.enums.MatchStatus;
 
 import java.time.LocalDateTime;
@@ -10,8 +10,11 @@ import java.util.List;
 
 @Entity
 @Table(name = "matches")
-@Data
-
+@Getter
+@Setter
+@ToString(exclude = {"tournament", "homeTeam", "awayTeam", "matchStatistics", "playerStatistics"})
+@EqualsAndHashCode(exclude = {"tournament", "homeTeam", "awayTeam", "matchStatistics", "playerStatistics"})
+@NoArgsConstructor
 public class Match {
 
     @Id

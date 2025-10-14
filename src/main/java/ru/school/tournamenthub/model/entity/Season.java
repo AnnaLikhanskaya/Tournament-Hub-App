@@ -1,7 +1,7 @@
 package ru.school.tournamenthub.model.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -16,7 +16,11 @@ import java.util.List;
 
 @Entity
 @Table(name = "seasons")
-@Data
+@Getter
+@Setter
+@ToString(exclude = "tournaments")
+@EqualsAndHashCode(exclude = "tournaments")
+@NoArgsConstructor
 public class Season {
 
     @Id

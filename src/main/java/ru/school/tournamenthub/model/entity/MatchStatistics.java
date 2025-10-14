@@ -1,7 +1,7 @@
 package ru.school.tournamenthub.model.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
@@ -11,8 +11,11 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "match_team_statistics")
-@Data
-
+@Getter
+@Setter
+@ToString(exclude = {"match", "recordedBy"})
+@EqualsAndHashCode(exclude = {"match", "recordedBy"})
+@NoArgsConstructor
 public class MatchStatistics {
 
     @Id

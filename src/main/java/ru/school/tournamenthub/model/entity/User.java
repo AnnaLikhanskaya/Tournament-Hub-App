@@ -1,27 +1,34 @@
 package ru.school.tournamenthub.model.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
 import ru.school.tournamenthub.model.enums.UserRole;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-
-/**
- * Сущность пользователя системы.
- * Представляет администраторов и тренеров, работающих с системой.
- */
+import java.util.UUID;
 
 @Entity
 @Table(name = "users")
-@Data
-
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@ToString(exclude = {"coachedTeams"})
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    @Column(name = "id", columnDefinition = "UUID", updatable = false, nullable = false)
+    @EqualsAndHashCode.Include
+    private UUID id;
+
+    @Version
+    @Column(name = "version")
+    private Long version;
 
     @Column(name = "username", unique = true, nullable = false, length = 50)
     private String username;
@@ -29,52 +36,27 @@ public class User {
     @Column(name = "email", unique = true, nullable = false, length = 100)
     private String email;
 
-    /**
-     * Зашифрованный пароль пользователя
-     * Лучше продумать шифрование
-     */
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
-    /**
-     * Роль пользователя в системе.
-     * ADMIN - полный доступ ко всем функциям
-     * COACH - доступ к управлению командами и турнирами
-     */
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false, length = 20)
     private UserRole role;
 
-    /**
-     * Полное имя пользователя (ФИО)
-     */
     @Column(name = "full_name", nullable = false, length = 100)
     private String fullName;
 
-    /**
-     * Дата и время создания учетной записи
-     */
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    /**
-     * Дата и время последнего обновления учетной записи
-     */
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    /**
-     * Флаг активности учетной записи
-     * Неактивные пользователи не могут войти в систему
-     */
     @Column(name = "is_active")
     private Boolean isActive = true;
 
-    /**
-     * Список команд, которые тренирует этот пользователь
-     * Только пользователи с ролью COACH могут иметь команды
-     */
     @OneToMany(mappedBy = "coach", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
     private List<Team> coachedTeams = new ArrayList<>();
 
     @PrePersist
@@ -86,5 +68,13 @@ public class User {
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
+    }
+
+    public boolean isAdmin() {
+        return UserRole.ADMIN.equals(this.role);
+    }
+
+    public boolean isCoach() {
+        return UserRole.COACH.equals(this.role);
     }
 }

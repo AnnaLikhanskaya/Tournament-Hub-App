@@ -1,7 +1,7 @@
 package ru.school.tournamenthub.model.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
 import ru.school.tournamenthub.model.enums.Gender;
 
 import java.time.LocalDateTime;
@@ -17,7 +17,11 @@ import java.util.List;
 @Table(name = "teams", uniqueConstraints = {
         @UniqueConstraint(columnNames = {"name", "city", "gender", "yearGroup", "coach_id"})
 })
-@Data
+@Getter
+@Setter
+@ToString(exclude = {"coach", "athletes", "tournamentParticipations", "homeMatches", "awayMatches", "owner"})
+@EqualsAndHashCode(exclude = {"coach", "athletes", "tournamentParticipations", "homeMatches", "awayMatches", "owner"})
+@NoArgsConstructor
 public class Team {
 
     @Id
@@ -85,6 +89,11 @@ public class Team {
      */
     @OneToMany(mappedBy = "awayTeam", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Match> awayMatches = new ArrayList<>();
+
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id", nullable = false)
+    private User owner;
 
     @PrePersist
     protected void onCreate() {

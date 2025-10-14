@@ -1,7 +1,7 @@
 package ru.school.tournamenthub.model.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
 
 /**
  * Сущность участия команды в турнире.
@@ -10,8 +10,11 @@ import lombok.Data;
 
 @Entity
 @Table(name = "tournament_participations")
-@Data
-
+@Getter
+@Setter
+@ToString(exclude = {"tournament", "team"})
+@EqualsAndHashCode(exclude = {"tournament", "team"})
+@NoArgsConstructor
 public class TournamentParticipation {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
