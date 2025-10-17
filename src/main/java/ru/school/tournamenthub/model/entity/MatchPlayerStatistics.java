@@ -3,6 +3,8 @@ package ru.school.tournamenthub.model.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.UUID;
+
 /**
  * Хранит индивидуальные показатели каждого игрока в конкретном матче.
  */
@@ -16,8 +18,8 @@ import lombok.*;
 public class MatchPlayerStatistics {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     /**
      * Матч, в котором участвовал игрок

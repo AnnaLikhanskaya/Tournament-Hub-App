@@ -147,9 +147,9 @@ public class UserServiceImpl implements UserService {
         }
 
         user.setIsActive(true);
-        userRepository.save(user);
+        User saveUser = userRepository.save(user);
         log.info("Пользователь с ID {} активирован", id);
-        return null;
+        return userConverter.convertToResponse(saveUser);
     }
 
     @Override

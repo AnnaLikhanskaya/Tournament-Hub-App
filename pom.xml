@@ -15,7 +15,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.0</version>
+        <version>3.2.4</version>
         <relativePath/>
     </parent>
 
@@ -24,9 +24,9 @@
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>21</java.version>
-        <lombok.version>1.18.30</lombok.version>
-        <jjwt.version>0.12.3</jjwt.version>
-        <springdoc.version>2.3.0</springdoc.version>
+        <lombok.version>1.18.32</lombok.version>
+        <jjwt.version>0.12.6</jjwt.version>
+        <springdoc.version>2.5.0</springdoc.version>
     </properties>
 
     <dependencies>
@@ -136,7 +136,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version>
+                <version>3.13.0</version>
                 <configuration>
                     <source>21</source>
                     <target>21</target>

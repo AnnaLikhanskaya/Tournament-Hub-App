@@ -2,6 +2,9 @@ package ru.school.tournamenthub.model.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.UuidGenerator;
 import ru.school.tournamenthub.model.enums.UserRole;
 
 import java.time.LocalDateTime;
@@ -21,14 +24,10 @@ import java.util.UUID;
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(name = "id", columnDefinition = "UUID", updatable = false, nullable = false)
-    @EqualsAndHashCode.Include
+    @GeneratedValue
+    @UuidGenerator
+    @Column(columnDefinition = "UUID", updatable = false, nullable = false)
     private UUID id;
-
-    @Version
-    @Column(name = "version")
-    private Long version;
 
     @Column(name = "username", unique = true, nullable = false, length = 50)
     private String username;
@@ -36,28 +35,35 @@ public class User {
     @Column(name = "email", unique = true, nullable = false, length = 100)
     private String email;
 
-    @Column(name = "password_hash", nullable = false, length = 255)
+    @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "role", nullable = false, length = 20)
+    @Column(nullable = false, length = 20)
     private UserRole role;
 
     @Column(name = "full_name", nullable = false, length = 100)
     private String fullName;
 
-    @Column(name = "created_at")
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
+    @UpdateTimestamp
     @Column(name = "updated_at")
+
     private LocalDateTime updatedAt;
 
     @Column(name = "is_active")
+    @Builder.Default
     private Boolean isActive = true;
 
     @OneToMany(mappedBy = "coach", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @Builder.Default
     private List<Team> coachedTeams = new ArrayList<>();
+
+    @Version
+    @Column(name = "version")
+    private Long version;
 
     @PrePersist
     protected void onCreate() {

@@ -3,6 +3,8 @@ package ru.school.tournamenthub.model.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.UUID;
+
 /**
  * Сущность участия команды в турнире.
  * Связывает команды с турнирами и хранит результаты участия.
@@ -16,9 +18,10 @@ import lombok.*;
 @EqualsAndHashCode(exclude = {"tournament", "team"})
 @NoArgsConstructor
 public class TournamentParticipation {
+
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     /**
      * Турнир, в котором участвует команда

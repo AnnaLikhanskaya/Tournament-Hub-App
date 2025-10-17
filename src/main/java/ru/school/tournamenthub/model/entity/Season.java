@@ -6,6 +6,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 
 /**
@@ -24,8 +25,8 @@ import java.util.List;
 public class Season {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID) // ← ИСПРАВЛЕНО
+    private UUID id;
 
     /**
      * Название сезона в формате "2024-2025"

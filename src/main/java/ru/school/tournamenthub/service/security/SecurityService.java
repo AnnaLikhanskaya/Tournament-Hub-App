@@ -2,6 +2,7 @@ package ru.school.tournamenthub.service.security;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Service;
 import ru.school.tournamenthub.model.entity.User;
 import ru.school.tournamenthub.service.UserService;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -24,7 +26,9 @@ public class SecurityService {
     public User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication == null || !authentication.isAuthenticated()) {
+        if (authentication == null || !authentication.isAuthenticated() ||
+                authentication instanceof AnonymousAuthenticationToken) {
+
             throw new SecurityException("Пользователь не аутентифицирован");
         }
 
@@ -35,6 +39,14 @@ public class SecurityService {
             return userService.findByUsername(username);
         } else {
             throw new SecurityException("Неизвестный тип principal: " + principal.getClass());
+        }
+    }
+
+    public Optional<UUID> getCurrentUserIsSafe() {
+        try {
+            return Optional.of(getCurrentUserId());
+        } catch (SecurityException e) {
+            return Optional.empty();
         }
     }
 

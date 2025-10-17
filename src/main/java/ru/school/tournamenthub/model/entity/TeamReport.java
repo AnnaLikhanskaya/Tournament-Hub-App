@@ -6,6 +6,7 @@ import ru.school.tournamenthub.model.enums.Gender;
 import ru.school.tournamenthub.model.enums.ReportType;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 /**
  * Сущность отчета.
@@ -21,8 +22,8 @@ import java.time.LocalDateTime;
 public class TeamReport {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     /**
      * Тип отчета (определяет структуру данных в reportData)

@@ -14,6 +14,6 @@ public record AuthResponse(
         UserResponse user
 ) {
     public AuthResponse(String token, UserResponse user) {
-        this(token, "Bearer", user); // Конструктор по умолчанию с Bearer типом
+        this(token, "Bearer", user);
     }
 }
